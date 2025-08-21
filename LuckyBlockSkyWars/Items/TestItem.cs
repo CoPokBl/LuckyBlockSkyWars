@@ -1,0 +1,17 @@
+using ManagedServer.Entities.Types;
+using ManagedServer.Viewables;
+using Minecraft.Data.Generated;
+using Minecraft.Schemas.Items;
+
+namespace LuckyBlockSkyWars.Items;
+
+public class TestItem : SkyWarsItem {
+    public override ItemStack Item => new ItemStack(Minecraft.Data.Generated.Item.AcaciaBoat)
+        .With(DataComponent.ItemName, "Test Item");
+    public override string Id => "test";
+
+    public override bool Use(PlayerEntity player) {
+        player.SendMessage("Hello there");
+        return false;
+    }
+}

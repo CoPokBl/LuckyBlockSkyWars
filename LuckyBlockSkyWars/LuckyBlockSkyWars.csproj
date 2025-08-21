@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="MinecraftDotnet.ManagedServer" Version="0.0.1-dev-142" />
+      <PackageReference Include="MinecraftDotnet.Polar" Version="0.0.1-dev-142" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="Maps\lobby.polar">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Maps\ramen.polar">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+</Project>
