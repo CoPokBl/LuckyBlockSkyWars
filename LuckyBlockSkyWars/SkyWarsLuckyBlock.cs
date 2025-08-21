@@ -6,6 +6,7 @@ using ManagedServer.Worlds;
 using ManagedServer.Worlds.Lighting;
 using Minecraft.Data.Generated;
 using Minecraft.Implementations.Server.Features;
+using Minecraft.Implementations.Server.Terrain;
 using Minecraft.Packets.Status.ClientBound;
 using Minecraft.Schemas;
 using Minecraft.Schemas.Entities.Meta.Types;
@@ -16,9 +17,9 @@ using PolarWorlds;
 namespace LuckyBlockSkyWars;
 
 public static class SkyWarsLuckyBlock {
-    private static readonly Vec3<double> LobbySpawn = new(5, 66, 5);
 
-    public static ManagedMinecraftServer CreateLobbyServer(SkyWarsGame.Config config, int startDelaySeconds) {
+    public static ManagedMinecraftServer CreateLobbyServer(SkyWarsGame.Config config, ITerrainProvider lobbyWorld, 
+        Vec3<double> lobbySpawn, int startDelaySeconds) {
         ManagedMinecraftServer server = ManagedMinecraftServer.NewBasic();
         server.AddFeatures(new ServerListPingFeature(connection => new ClientBoundStatusResponsePacket {
             VersionName = "dotnet",
@@ -34,12 +35,12 @@ public static class SkyWarsLuckyBlock {
         server.Dimensions.Add("skywars:game", new Dimension());
         
         Console.WriteLine("Loading maps...");
-        World lobby = server.CreateWorld(new PolarLoader(SkyWarsUtils.ReadPolarMap("lobby.polar"), VanillaRegistry.Data), "skywars:lobby", new FullBrightLightingProvider());
+        World lobby = server.CreateWorld(lobbyWorld, "skywars:lobby", new FullBrightLightingProvider());
         // SkyWarsGame.LoadWorld();
         Console.WriteLine("Maps loaded successfully.");
 
         NpcEntity billy = new(new PlayerMeta(SkinFlags:SkinParts.All)) {
-            Position = LobbySpawn,
+            Position = lobbySpawn,
             Name = ChatUtils.FormatLegacy("&a&lBilly"),
             Skin = PlayerSkin.FromUsername("Technoblade").Result
         };
@@ -144,15 +145,16 @@ public static class SkyWarsLuckyBlock {
             }
 
             if (e.NewPos.Y < 50) {
-                player.Teleport(LobbySpawn);
+                player.Teleport(lobbySpawn);
             }
         });
         
         return server;
     }
     
-    public static async Task StartLobby(SkyWarsGame.Config config, int startDelaySeconds) {
-        ManagedMinecraftServer server = CreateLobbyServer(config, startDelaySeconds);
+    public static async Task StartLobby(SkyWarsGame.Config config, ITerrainProvider lobbyWorld, 
+        Vec3<double> lobbySpawn, int startDelaySeconds) {
+        ManagedMinecraftServer server = CreateLobbyServer(config, lobbyWorld, lobbySpawn, startDelaySeconds);
 
         Console.WriteLine("Starting SkyWars Lucky Block server...");
         server.Start();

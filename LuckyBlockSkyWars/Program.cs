@@ -18,4 +18,8 @@ SkyWarsMap ramen = new(
 );
 SkyWarsGame.Config config = new(ramen);
 
-await SkyWarsLuckyBlock.StartLobby(config, 5);
+await SkyWarsLuckyBlock.StartLobby(
+    config, 
+    new PolarLoader(SkyWarsUtils.ReadPolarMap("lobby.polar"), VanillaRegistry.Data),
+    new Vec3<double>(5, 66, 5),
+    5);
