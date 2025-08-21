@@ -10,4 +10,5 @@ Two maps are included, adding more requires code changes for now
 however a JSON configuration system may be added in the future.
 
 This project is also designed to be used as a library, so you can
-integrate it into another project.
+integrate it into another project. It is available as a NuGet package
+`MinecraftDotnet.Game.LuckyBlockSkyWars`.
