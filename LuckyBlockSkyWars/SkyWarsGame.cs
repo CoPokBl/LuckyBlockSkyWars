@@ -1,3 +1,4 @@
+using LuckyBlockSkyWars.Events;
 using LuckyBlockSkyWars.Features;
 using LuckyBlockSkyWars.Maps;
 using ManagedServer;
@@ -20,9 +21,12 @@ using Minecraft.Text;
 namespace LuckyBlockSkyWars;
 
 public class SkyWarsGame(ManagedMinecraftServer server, SkyWarsGame.Config config, PlayerEntity[] players, Action gameEndCallback) {
+    public const string GameDimension = "skywars:game";
+    
     public readonly List<PlayerEntity> RemainingPlayers = [];
     public World World { get; private set; } = null!;
     public bool HasEnded { get; private set; }
+    public PlayerEntity[] Players { get; } = players;
     
     private static FeatureBundle SkyWarsFeatures => new(
         new SkyWarsChestsFeature(),
@@ -43,63 +47,24 @@ public class SkyWarsGame(ManagedMinecraftServer server, SkyWarsGame.Config confi
         config.Map.World.GetChunk(ref data);
     }
     
-    private Queue<Vec3<double>> CreateRandomSpawns() {
-        Queue<Vec3<double>> spawns = new();
-        List<Vec3<double>> spawnList = config.Map.Spawns.ToList();
-        
-        while (spawnList.Count > 0) {
-            int index = Random.Shared.Next(spawnList.Count);
-            spawns.Enqueue(spawnList[index]);
-            spawnList.RemoveAt(index);
-        }
-        
-        return spawns;
-    }
-    
-    private void Die(PlayerEntity player) {
-        if (HasEnded) {
-            return;
-        }
-        
-        World.SendMessage(TextComponent.FromLegacyString($"&6{player.Name} &chas been killed!"));
-        player.GameMode = GameMode.Spectator;
-
-        foreach (ItemStack item in player.Inventory.Items) {
-            World.DropItem(player.Position, item);
-        }
-        
-        player.Teleport(config.Map.SpecSpawn);
-        lock (RemainingPlayers) {
-            RemainingPlayers.Remove(player);
-            if (RemainingPlayers.Count != 1) return;
-            
-            // Winner
-            HasEnded = true;
-            PlayerEntity winner = RemainingPlayers[0];
-            winner.SendMessage(TextComponent.FromLegacyString("&a&lYou won the game!"));
-            
-            World.SendTitle(
-                TextComponent.FromLegacyString("&a&lGame Over!"),
-                TextComponent.FromLegacyString("&7Winner: " + winner.Name), 10, 70, 20);
-
-            World.Server.Scheduler.ScheduleTask(TimeSpan.FromSeconds(10), gameEndCallback.Invoke);
-        }
-    }
-
     public void Start() {
-        World = server.CreateWorld(config.Map.World, "skywars:game");
+        if (!server.Dimensions.ContainsKey(GameDimension)) {
+            server.Dimensions.Add(GameDimension, new Dimension());
+        }
+        
+        World = server.CreateWorld(config.Map.World, GameDimension);
         World.AddFeatures(SkyWarsFeatures);
         
         Queue<Vec3<double>> spawns = CreateRandomSpawns();
         
-        foreach (PlayerEntity player in players) {
+        foreach (PlayerEntity player in Players) {
             RemainingPlayers.Add(player);
             player.SetWorld(World);
             player.Teleport(spawns.Dequeue());
             player.SendMessage(TextComponent.FromLegacyString("&a&lGame Started! Good luck!"));
         }
 
-        foreach (PlayerEntity player in players) {
+        foreach (PlayerEntity player in Players) {
             player.GameMode = GameMode.Survival;
             
             player.SendPacket(new ClientBoundUpdateTagsPacket {
@@ -132,6 +97,63 @@ public class SkyWarsGame(ManagedMinecraftServer server, SkyWarsGame.Config confi
         World.Events.AddListener<PlayerDisconnectEvent>(e => {
             Die(e.Player);
         });
+
+        SkyWarsGameStartEvent startEvent = new() {
+            Game = this
+        };
+        server.Events.CallEvent(startEvent);
+    }
+    
+    private Queue<Vec3<double>> CreateRandomSpawns() {
+        Queue<Vec3<double>> spawns = new();
+        List<Vec3<double>> spawnList = config.Map.Spawns.ToList();
+        
+        while (spawnList.Count > 0) {
+            int index = Random.Shared.Next(spawnList.Count);
+            spawns.Enqueue(spawnList[index]);
+            spawnList.RemoveAt(index);
+        }
+        
+        return spawns;
+    }
+
+    private void EndGame(PlayerEntity? winner) {
+        HasEnded = true;
+        winner?.SendMessage(TextComponent.FromLegacyString("&a&lYou won the game!"));
+        
+        World.SendTitle(
+            TextComponent.FromLegacyString("&a&lGame Over!"),
+            TextComponent.FromLegacyString("&7Winner: " + (winner?.Name ?? "No One")), 10, 70, 20);
+
+        World.Server.Scheduler.ScheduleTask(10 * server.TargetTicksPerSecond, gameEndCallback.Invoke);
+        
+        SkyWarsGameEndEvent endEvent = new() {
+            Game = this,
+            Winner = winner
+        };
+        server.Events.CallEvent(endEvent);
+    }
+    
+    private void Die(PlayerEntity player) {
+        if (HasEnded) {
+            return;
+        }
+        
+        World.SendMessage(TextComponent.FromLegacyString($"&6{player.Name} &chas been killed!"));
+        player.GameMode = GameMode.Spectator;
+
+        foreach (ItemStack item in player.Inventory.Items) {
+            World.DropItem(player.Position, item);
+        }
+        
+        player.Teleport(config.Map.SpecSpawn);
+        lock (RemainingPlayers) {
+            RemainingPlayers.Remove(player);
+            if (RemainingPlayers.Count != 1) return;
+            
+            // Winner
+            EndGame(RemainingPlayers[0]);
+        }
     }
 
     public record Config(SkyWarsMap Map);

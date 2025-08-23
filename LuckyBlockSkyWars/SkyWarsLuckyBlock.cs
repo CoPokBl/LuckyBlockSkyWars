@@ -17,9 +17,10 @@ using PolarWorlds;
 namespace LuckyBlockSkyWars;
 
 public static class SkyWarsLuckyBlock {
+    private const string LobbyDimension = "skywars:lobby";
 
     public static ManagedMinecraftServer CreateLobbyServer(SkyWarsGame.Config config, ITerrainProvider lobbyWorld, 
-        Vec3<double> lobbySpawn, int startDelaySeconds) {
+        Vec3<double> lobbySpawn, int startDelaySeconds, bool requeueOnGameEnd = true) {
         ManagedMinecraftServer server = ManagedMinecraftServer.NewBasic();
         server.AddFeatures(new ServerListPingFeature(connection => new ClientBoundStatusResponsePacket {
             VersionName = "dotnet",
@@ -31,11 +32,10 @@ public static class SkyWarsLuckyBlock {
             PreventsChatReports = true
         }));
         
-        server.Dimensions.Add("skywars:lobby", new Dimension());
-        server.Dimensions.Add("skywars:game", new Dimension());
+        server.Dimensions.Add(LobbyDimension, new Dimension());
         
         Console.WriteLine("Loading maps...");
-        World lobby = server.CreateWorld(lobbyWorld, "skywars:lobby", new FullBrightLightingProvider());
+        World lobby = server.CreateWorld(lobbyWorld, LobbyDimension, new FullBrightLightingProvider());
         // SkyWarsGame.LoadWorld();
         Console.WriteLine("Maps loaded successfully.");
 
@@ -50,22 +50,33 @@ public static class SkyWarsLuckyBlock {
         DateTime startTime = DateTime.Now;
         List<PlayerEntity> waitingPlayers = [];
 
-        void StartGame() {
-            startTimer?.Dispose();
-            startTimer = null;
+        server.Events.AddListener<PlayerPreLoginEvent>(e => {
+            e.World = lobby;
+            e.GameMode = GameMode.Adventure;
+            e.Hardcore = true;
+        });
 
-            lock (waitingPlayers) {
-                PlayerEntity[] players = waitingPlayers.ToArray();
-                SkyWarsGame game = new(server, config, players, () => {
-                    foreach (PlayerEntity player in players) {
-                        EnqueuePlayer(player);
-                    }
-                });
-                game.Start();
-                waitingPlayers.Clear();
+        server.Events.AddListener<PlayerLoginEvent>(e => {
+            EnqueuePlayer(e.Player);
+        });
+
+        lobby.Events.AddListener<PlayerBreakBlockEvent>(e => {
+            e.Cancelled = true;
+        });
+
+        lobby.Events.AddListener<EntityMoveEvent>(e => {
+            if (e.Entity is not PlayerEntity player) {
+                return;
             }
-        }
+
+            if (e.NewPos.Y < 50) {
+                player.Teleport(lobbySpawn);
+            }
+        });
         
+        return server;
+        
+
         void EnqueuePlayer(PlayerEntity player) {
             player.GameMode = GameMode.Survival;
             player.Inventory.Clear();
@@ -100,56 +111,22 @@ public static class SkyWarsLuckyBlock {
                 }
             }
         }
-        
-        server.Events.AddListener<PlayerPreLoginEvent>(e => {
-            e.World = lobby;
-            e.GameMode = GameMode.Survival;
-            e.Hardcore = true;
-        });
 
-        server.Events.AddListener<PlayerLoginEvent>(e => {
-            EnqueuePlayer(e.Player);
-        });
+        void StartGame() {
+            startTimer?.Dispose();
+            startTimer = null;
 
-        lobby.Events.AddListener<PlayerBreakBlockEvent>(e => {
-            e.Cancelled = true;
-        });
-
-        server.Events.AddListener<PlayerChatEvent>(e => {
-            if (!e.RawMessage.StartsWith("skin ")) {
-                return;
+            lock (waitingPlayers) {
+                PlayerEntity[] players = waitingPlayers.ToArray();
+                SkyWarsGame game = new(server, config, players, requeueOnGameEnd ? () => {
+                    foreach (PlayerEntity player in players) {
+                        EnqueuePlayer(player);
+                    }
+                } : () => { });
+                game.Start();
+                waitingPlayers.Clear();
             }
-            
-            string skinName = e.RawMessage[5..].Trim();
-            if (string.IsNullOrEmpty(skinName)) {
-                e.Player.SendMessage("Please provide a skin name.");
-                return;
-            }
-
-            Task.Run(() => {
-                PlayerSkin? skin = PlayerSkin.FromUsername(skinName).Result;
-                if (skin == null) {
-                    e.Player.SendMessage("Skin not found: " + skinName);
-                    return;
-                }
-
-                e.Player.Skin = skin;
-                e.Player.SendMessage("Skin set to: " + skinName);
-            });
-            e.Player.SendMessage("Loading skin: " + skinName);
-        });
-
-        lobby.Events.AddListener<EntityMoveEvent>(e => {
-            if (e.Entity is not PlayerEntity player) {
-                return;
-            }
-
-            if (e.NewPos.Y < 50) {
-                player.Teleport(lobbySpawn);
-            }
-        });
-        
-        return server;
+        }
     }
     
     public static async Task StartLobby(SkyWarsGame.Config config, ITerrainProvider lobbyWorld, 
