@@ -1,7 +1,7 @@
 using LuckyBlockSkyWars.Items;
 using ManagedServer.Events;
 using ManagedServer.Features;
-using ManagedServer.Inventory;
+using ManagedServer.Inventories;
 using Minecraft;
 using Minecraft.Data.Blocks;
 using Minecraft.Data.Generated;

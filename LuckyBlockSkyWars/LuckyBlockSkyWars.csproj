@@ -18,8 +18,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="MinecraftDotnet.ManagedServer" Version="0.0.2-dev.165" />
-      <PackageReference Include="MinecraftDotnet.Polar" Version="0.0.2-dev.165" />
+      <PackageReference Include="MinecraftDotnet.ManagedServer" Version="0.0.2-dev.166" />
+      <PackageReference Include="MinecraftDotnet.Polar" Version="0.0.2-dev.166" />
     </ItemGroup>
 
     <ItemGroup>
