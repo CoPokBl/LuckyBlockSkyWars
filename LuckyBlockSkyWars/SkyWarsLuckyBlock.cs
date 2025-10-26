@@ -4,7 +4,6 @@ using ManagedServer.Events;
 using ManagedServer.Viewables;
 using ManagedServer.Worlds;
 using ManagedServer.Worlds.Lighting;
-using Minecraft.Data.Generated;
 using Minecraft.Implementations.Server.Features;
 using Minecraft.Implementations.Server.Terrain;
 using Minecraft.Packets.Status.ClientBound;
@@ -12,7 +11,6 @@ using Minecraft.Schemas;
 using Minecraft.Schemas.Entities.Meta.Types;
 using Minecraft.Schemas.Vec;
 using Minecraft.Text;
-using PolarWorlds;
 
 namespace LuckyBlockSkyWars;
 
@@ -39,7 +37,9 @@ public static class SkyWarsLuckyBlock {
         // SkyWarsGame.LoadWorld();
         Console.WriteLine("Maps loaded successfully.");
 
-        NpcEntity billy = new(new PlayerMeta(SkinFlags:SkinParts.All)) {
+        NpcEntity billy = new(new PlayerMeta {
+            SkinFlags = SkinParts.All
+        }) {
             Position = lobbySpawn,
             Name = ChatUtils.FormatLegacy("&a&lBilly"),
             Skin = PlayerSkin.FromUsername("Technoblade").Result

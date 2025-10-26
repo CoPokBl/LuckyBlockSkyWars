@@ -8,6 +8,7 @@ using Minecraft.Data.Generated;
 using Minecraft.Data.Sounds;
 using Minecraft.Implementations.Tags;
 using Minecraft.Schemas;
+using Minecraft.Schemas.Entities;
 using Minecraft.Schemas.Items;
 using Minecraft.Schemas.Sound;
 using Minecraft.Schemas.Vec;
@@ -34,8 +35,8 @@ public class LuckyBlocksFeature : ScopedFeature {
             .With(DataComponent.Lore,
                 [TextComponent.FromLegacyString("&7You didn't think we'd let you win that easily, did you?")]))),
         (5, new ItemBlockResult(new ItemStack(Item.LeatherHelmet)
-            .WithTag(AttributeModifiersFeature.AttributeModifiersTag, [
-                new AttributeModifiersFeature.Modifier(Attribute.Scale.Identifier, -0.5, "skywars:shrink_helmet", AttributeOperation.AddMultipliedTotal)
+            .With(DataComponent.AttributeModifiers, [
+                new ItemAttributeModifier(Attribute.Scale, "skywars:shrink_helmet", -0.5, AttributeOperation.AddMultipliedTotal, EquipmentSlotGroup.Head, ItemAttributeModifier.Display.DefaultMode())
             ])
             .With(DataComponent.ItemName, TextComponent.FromLegacyString("&bShrink Helmet"))
             .With(DataComponent.EnchantmentGlintOverride, true)
@@ -52,9 +53,10 @@ public class LuckyBlocksFeature : ScopedFeature {
             ])
             .With(DataComponent.DyedColor, TextColor.Hex("#78ff00"))
             .With(DataComponent.EnchantmentGlintOverride, true)
-            .WithTag(AttributeModifiersFeature.AttributeModifiersTag, [
-                new AttributeModifiersFeature.Modifier(Attribute.JumpStrength.Identifier, 1, "skywars:jumping_boots", AttributeOperation.AddMultipliedTotal)
-            ]))),
+            .With(DataComponent.AttributeModifiers, [
+                new ItemAttributeModifier(Attribute.JumpStrength, "skywars:jumping_boots", 1.0, AttributeOperation.AddMultipliedTotal, EquipmentSlotGroup.Feet, ItemAttributeModifier.Display.DefaultMode())
+            ])
+        )),
         (5, new ItemBlockResult(typeof(ExplosiveChestplateItem))),
         (5, new ItemBlockResult(new ItemStack(Item.Apple)
             .With(DataComponent.ItemName, "Newton's Apple")
@@ -62,11 +64,8 @@ public class LuckyBlocksFeature : ScopedFeature {
                 Or<ISoundType, SoundEvent>.FromValue2(new SoundEvent(SoundType.ArmorEquipDiamond, 1f)), 
                 null, null, null, true, true, true, 
                 true, false, Or<ISoundType, SoundEvent>.FromValue1(SoundType.AllayDeath)))
-            // .With(DataComponent.AttributeModifiers, [
-            //     new ItemAttributeModifier(Attribute.Gravity, "skywars:newtonsapple", -1.0, AttributeOperation.AddMultipliedTotal, AttributeActiveSlot.Body)
-            // ])
-            .WithTag(AttributeModifiersFeature.AttributeModifiersTag, [
-                new AttributeModifiersFeature.Modifier(Attribute.Gravity.Identifier, -0.5, "skywars:newtons_apple", AttributeOperation.AddMultipliedTotal)
+            .With(DataComponent.AttributeModifiers, [
+                new ItemAttributeModifier(Attribute.Gravity, "skywars:newtonsapple", -1.0, AttributeOperation.AddMultipliedTotal, EquipmentSlotGroup.Head, ItemAttributeModifier.Display.DefaultMode())
             ])
         )),
         (5, new ItemBlockResult(new ItemStack(Item.LeatherLeggings).With(DataComponent.Lore, [

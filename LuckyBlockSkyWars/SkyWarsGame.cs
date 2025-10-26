@@ -35,7 +35,6 @@ public class SkyWarsGame(ManagedMinecraftServer server, SkyWarsGame.Config confi
         new LuckyBlocksFeature(),
         new SkyWarsItemsFeature(),
         new RespawnFeature(),
-        new AttributeModifiersFeature(),
         new ArmourSlotEnforcementFeature()
     );
 
